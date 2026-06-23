@@ -20,5 +20,5 @@ interface ApiServices {
     suspend fun loginUser(
         @retrofit2.http.Body request: LoginRequest
     ): Response<LoginResponse>
-    
+
 }
