@@ -29,8 +29,12 @@ import androidx.compose.ui.text.input.*
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.farmhelper.ui.auth.viewmodel.AuthViewModel
 import com.example.farmhelper.ui.localization.LanguageManager
 import kotlinx.coroutines.delay
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.collectAsState
+
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 private val SignUpPrimaryGreen   = Color(0xFF2E7D32)
@@ -52,10 +56,15 @@ fun SignUpScreen(
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var mobile by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+
+    val authViewModel: AuthViewModel = viewModel()
+    val isLoading by authViewModel.isLoading.collectAsState()
+    val error by authViewModel.error.collectAsState()
+    val registerResponse by authViewModel.registerResponse.collectAsState()
 
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
@@ -270,6 +279,24 @@ fun SignUpScreen(
 
                     Spacer(modifier = Modifier.height(14.dp))
 
+                    // Mobile NUmber
+                    SignUpTextField(
+                        value = mobile,
+                        onValueChange = { mobile = it },
+                        label = "Mobile NUmber",
+                        placeholder = "+91 98765 XXXXX",
+                        leadingIcon = {
+                            Icon(Icons.Filled.Phone, null, tint = SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Next
+                        ),
+                        keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Down) })
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     // Password
                     SignUpTextField(
                         value = password,
@@ -387,7 +414,15 @@ fun SignUpScreen(
                             && password.length >= 6 && !passwordMismatch
 
                     Button(
-                        onClick = { if (formValid) isLoading = true },
+                        onClick = {
+                            authViewModel.registerUser(
+                                fullName = fullName,
+                                email = email,
+                                mobile = mobile,
+                                password = password,
+                                confirmPassword = confirmPassword
+                            )
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
@@ -434,6 +469,12 @@ fun SignUpScreen(
                                 }
                             }
                         }
+                    }
+                    error?.let {
+                        Text(
+                            text = it,
+                            color = Color.Red,
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(20.dp))
