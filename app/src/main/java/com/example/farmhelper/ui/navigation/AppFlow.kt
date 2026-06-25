@@ -3,6 +3,7 @@ package com.example.farmhelper.ui.navigation
 import androidx.compose.runtime.*
 import com.example.farmhelper.ui.auth.LoginScreen
 import com.example.farmhelper.ui.auth.SignUpScreen
+import com.example.farmhelper.ui.home.HomeScreen
 import com.example.farmhelper.ui.language.LanguageSelectionScreen
 import com.example.farmhelper.ui.localization.LanguageManager
 import com.example.farmhelper.ui.onboarding.OnboardingScreen
@@ -13,7 +14,8 @@ enum class AppScreen {
     LANGUAGE,
     ONBOARDING,
     LOGIN,
-    SIGNUP
+    SIGNUP,
+    HOME
 }
 
 @Composable
@@ -67,8 +69,15 @@ fun AppFlow() {
             SignUpScreen(
                 onNavigateToLogin = {
                     currentScreen = AppScreen.LOGIN
+                },
+                onSignUpSuccess  = {
+                    currentScreen = AppScreen.HOME
                 }
             )
+        }
+
+        AppScreen.HOME -> {
+            HomeScreen()
         }
     }
 }

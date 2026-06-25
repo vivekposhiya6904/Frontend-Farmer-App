@@ -51,7 +51,8 @@ private val SignUpErrorColor     = Color(0xFFE53935)
 // ── Sign Up Screen ────────────────────────────────────────────────────────────
 @Composable
 fun SignUpScreen(
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onSignUpSuccess: () -> Unit = {}
 ) {
     var fullName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -65,6 +66,12 @@ fun SignUpScreen(
     val isLoading by authViewModel.isLoading.collectAsState()
     val error by authViewModel.error.collectAsState()
     val registerResponse by authViewModel.registerResponse.collectAsState()
+
+    LaunchedEffect(registerResponse) {
+        registerResponse?.let {
+            onSignUpSuccess()
+        }
+    }
 
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
