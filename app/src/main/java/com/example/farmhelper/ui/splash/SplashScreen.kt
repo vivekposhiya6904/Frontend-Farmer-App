@@ -12,13 +12,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.graphics.drawscope.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.farmhelper.session.SessionManager
+import com.example.farmhelper.ui.auth.models.AuthStateManager
+import com.example.farmhelper.R
+import androidx.compose.ui.res.stringResource
 import kotlin.math.*
 import kotlinx.coroutines.delay
+import org.intellij.lang.annotations.Language
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 private val PrimaryGreen   = Color(0xFF2E7D32)
@@ -54,11 +60,32 @@ private val floatingLeaves = listOf(
 
 // ─── Main Splash Composable ───────────────────────────────────────────────────
 @Composable
-fun FarmerSplashScreen(onFinished: () -> Unit = {}) {
+fun FarmerSplashScreen(
+    onNavigateToHome: () -> Unit = {},
+    onNavigationToLanguage: () -> Unit = {}
+) {
 
-    LaunchedEffect(Unit) {
-        delay(3000)
-        onFinished()
+
+
+    val context = LocalContext.current
+
+    val sessionManager = remember {
+        SessionManager(context)
+    }
+
+    val isLoggedIn by sessionManager.isLoggedIn.collectAsState(initial = false)
+
+    LaunchedEffect(isLoggedIn) {
+        delay(2500)
+
+        if (isLoggedIn) {
+            AuthStateManager.setAuthenticated()
+            onNavigateToHome()
+        }
+        else {
+            AuthStateManager.setUnauthenticated()
+            onNavigationToLanguage()
+        }
     }
 
     // ── Screen-level fade-in ──────────────────────────────────────────────────
@@ -209,7 +236,7 @@ fun FarmerSplashScreen(onFinished: () -> Unit = {}) {
 
             // ── Tagline ───────────────────────────────────────────────────────
             Text(
-                text      = "Smart Farming Companion",
+                text      = stringResource(id = R.string.splash_tagline),
                 fontSize  = 15.sp,
                 fontWeight = FontWeight.Normal,
                 color     = MediumGray,
@@ -238,7 +265,7 @@ fun FarmerSplashScreen(onFinished: () -> Unit = {}) {
             val fadeFraction = dotIndex - dotIndex.toInt()
 
             Text(
-                text      = "Loading$dots",
+                text      = stringResource(id = R.string.loading_label) + dots,
                 fontSize  = 13.sp,
                 fontWeight = FontWeight.Medium,
                 color     = LightGray.copy(alpha = 0.6f + fadeFraction * 0.4f),

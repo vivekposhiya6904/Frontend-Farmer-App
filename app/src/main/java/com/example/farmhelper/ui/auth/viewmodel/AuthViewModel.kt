@@ -1,20 +1,27 @@
 package com.example.farmhelper.ui.auth.viewmodel
 
-import androidx.lifecycle.VIEW_MODEL_STORE_OWNER_KEY
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.farmhelper.session.SessionManager
 import com.example.farmhelper.ui.auth.models.LoginRequest
 import com.example.farmhelper.ui.auth.models.LoginResponse
 import com.example.farmhelper.ui.auth.models.RegisterRequest
 import com.example.farmhelper.ui.auth.models.RegisterResponse
 import com.example.farmhelper.ui.auth.repository.AuthRepository
+import com.example.farmhelper.ui.auth.models.AuthStateManager
+import com.example.farmhelper.api.NetworkErrorHandler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
-class AuthViewModel : ViewModel() {
+class AuthViewModel(
+    application: Application
+) : AndroidViewModel(application){
 
     private val repository = AuthRepository()
+
+    private val sessionManager = SessionManager(getApplication())
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -57,24 +64,32 @@ class AuthViewModel : ViewModel() {
 
                 if (response.isSuccessful) {
 
-                    _registerResponse.value =
-                        response.body()
+                    response.body()?.let { registerResponse ->
+
+                        sessionManager.saveSession(
+                            access_token = registerResponse.access_token,
+                            refresh_token = registerResponse.refresh_token,
+                            token_type = registerResponse.token_type,
+                            expires_in = registerResponse.expires_in,
+                            user_id = registerResponse.user.id,
+                            full_name = registerResponse.user.full_name,
+                            email = registerResponse.user.email,
+                            mobile = registerResponse.user.mobile,
+                            is_active = registerResponse.user.is_active
+                        )
+
+                        AuthStateManager.setAuthenticated()
+                        _registerResponse.value = registerResponse
+
+                    }
 
                 } else {
-
-                    _error.value =
-                        response.errorBody()?.string()?: "Register failed with unknown error"
-
+                    _error.value = NetworkErrorHandler.parseErrorResponse(response)
                 }
-            }catch (e: Exception) {
-
-                _error.value =
-                    e.message ?: "Unknown error occurred during registration"
-
-            }finally {
-
+            } catch (e: Exception) {
+                _error.value = NetworkErrorHandler.getErrorMessage(e)
+            } finally {
                 _isLoading.value = false
-
             }
         }
     }
@@ -83,6 +98,7 @@ class AuthViewModel : ViewModel() {
         email: String,
         password: String
     ) {
+        android.util.Log.d("AuthViewModel", "loginUser: button click triggered with email=$email")
 
         viewModelScope.launch {
 
@@ -90,30 +106,46 @@ class AuthViewModel : ViewModel() {
             _error.value = null
 
             try {
-
+                android.util.Log.d("AuthViewModel", "loginUser: calling repository.loginUser")
                 val response = repository.loginUser(
                     LoginRequest(
                         email = email,
                         password = password
                     )
                 )
+                android.util.Log.d("AuthViewModel", "loginUser: repository call returned success=${response.isSuccessful}")
 
                 if (response.isSuccessful) {
 
-                    _loginResponse.value =
-                        response.body()
-                } else {
+                    response.body()?.let { loginResponse ->
+                        android.util.Log.d("AuthViewModel", "loginUser: saving session")
+                        sessionManager.saveSession(
+                            access_token = loginResponse.access_token,
+                            refresh_token = loginResponse.refresh_token,
+                            token_type = loginResponse.token_type,
+                            expires_in = loginResponse.expires_in,
+                            user_id = loginResponse.user.id,
+                            full_name = loginResponse.user.full_name,
+                            email = loginResponse.user.email,
+                            mobile = loginResponse.user.mobile,
+                            is_active = loginResponse.user.is_active
+                        )
 
-                    _error.value =
-                        response.errorBody()?.string()?: "Login failed with unknown error"
+                        AuthStateManager.setAuthenticated()
+                        _loginResponse.value = loginResponse
+                        android.util.Log.d("AuthViewModel", "loginUser: authentication marked success")
+                    }
+
+
+                } else {
+                    val errMsg = NetworkErrorHandler.parseErrorResponse(response)
+                    android.util.Log.w("AuthViewModel", "loginUser: response unsuccessful: $errMsg")
+                    _error.value = errMsg
                 }
             } catch (e: Exception) {
-
-                _error.value =
-                    e.message ?: "Unknown error occurred during login"
-
+                android.util.Log.e("AuthViewModel", "loginUser: caught exception during execution", e)
+                _error.value = NetworkErrorHandler.getErrorMessage(e)
             } finally {
-
                 _isLoading.value = false
             }
 

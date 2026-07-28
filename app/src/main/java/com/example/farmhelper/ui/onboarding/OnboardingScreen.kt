@@ -31,6 +31,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.graphicsLayer
 import com.example.farmhelper.ui.localization.LanguageManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.example.farmhelper.R
 
 // Color constants matching the existing design system
 private val PrimaryGreen = Color(0xFF2E7D32)
@@ -57,25 +60,29 @@ fun OnboardingScreen(
     onGetStarted: () -> Unit = {},
     onSkip: () -> Unit = {}
 ) {
-    val pages = remember {
+    val context = LocalContext.current
+    val languageFlow = remember { LanguageManager.getLanguageFlow(context) }
+    val currentLanguageCode by languageFlow.collectAsState(initial = LanguageManager.currentLanguage)
+
+    val pages = remember(currentLanguageCode) {
         listOf(
             OnboardingPage(
-                title = LanguageManager.get("weather"),
-                subtitle = "Get accurate weather forecasts to plan your farming activities and protect your crops from unexpected weather conditions.",
+                title = context.getString(R.string.weather),
+                subtitle = context.getString(R.string.onboarding_subtitle_weather),
                 icon = Icons.Filled.WbSunny,
-                iconDescription = "Weather"
+                iconDescription = context.getString(R.string.weather)
             ),
             OnboardingPage(
-                title = LanguageManager.get("prices"),
-                subtitle = "Track real-time crop market prices and make better selling decisions for maximum profitability.",
+                title = context.getString(R.string.prices),
+                subtitle = context.getString(R.string.onboarding_subtitle_prices),
                 icon = Icons.Filled.TrendingUp,
-                iconDescription = "Prices"
+                iconDescription = context.getString(R.string.prices)
             ),
             OnboardingPage(
-                title = LanguageManager.get("smart"),
-                subtitle = "Use modern technology and smart farming insights to improve productivity and increase profits.",
+                title = context.getString(R.string.smart),
+                subtitle = context.getString(R.string.onboarding_subtitle_smart),
                 icon = Icons.Outlined.Eco,
-                iconDescription = "Smart Farming"
+                iconDescription = context.getString(R.string.smart)
             )
         )
     }
@@ -118,7 +125,7 @@ fun OnboardingScreen(
                         )
                     ) {
                         Text(
-                            "Skip",
+                            stringResource(id = R.string.skip),
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -184,7 +191,7 @@ fun OnboardingScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                LanguageManager.get("next"),
+                                stringResource(id = R.string.next),
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold
@@ -215,7 +222,7 @@ fun OnboardingScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                LanguageManager.get("start"),
+                                stringResource(id = R.string.start),
                                 color = Color.White,
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold

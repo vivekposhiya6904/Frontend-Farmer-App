@@ -4,8 +4,8 @@ class RegisterResponse(
     val access_token: String,
     val refresh_token: String,
     val token_type: String,
-    val expire_in: Int,
-    val data: User
+    val expires_in: Int,
+    val user: User
 )
 
 data class User(

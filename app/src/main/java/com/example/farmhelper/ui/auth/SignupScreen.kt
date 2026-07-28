@@ -1,5 +1,7 @@
 package com.example.farmhelper.ui.auth
 
+import androidx.compose.ui.res.stringResource
+import com.example.farmhelper.R
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -193,7 +195,7 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(5.dp))
 
             Text(
-                text = "Join the Smart Farming Revolution",
+                text = stringResource(id = R.string.join_revolution),
                 fontSize = 13.sp,
                 color = SignUpMediumGray,
                 letterSpacing = 0.3.sp,
@@ -241,7 +243,7 @@ fun SignUpScreen(
                     }
 
                     Text(
-                        text = "Start your farming journey today",
+                        text = stringResource(id = R.string.start_journey),
                         fontSize = 13.sp,
                         color = SignUpMediumGray,
                         modifier = Modifier
@@ -253,8 +255,8 @@ fun SignUpScreen(
                     SignUpTextField(
                         value = fullName,
                         onValueChange = { fullName = it },
-                        label = "Full Name",
-                        placeholder = "Ramesh Kumar",
+                        label = stringResource(id = R.string.fullname),
+                        placeholder = stringResource(id = R.string.fullname_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Person, null, tint = SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -272,8 +274,8 @@ fun SignUpScreen(
                     SignUpTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = "Email Address",
-                        placeholder = "you@example.com",
+                        label = stringResource(id = R.string.email_address),
+                        placeholder = stringResource(id = R.string.email_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Email, null, tint = SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -290,8 +292,8 @@ fun SignUpScreen(
                     SignUpTextField(
                         value = mobile,
                         onValueChange = { mobile = it },
-                        label = "Mobile NUmber",
-                        placeholder = "+91 98765 XXXXX",
+                        label = stringResource(id = R.string.phone_number),
+                        placeholder = stringResource(id = R.string.phone_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Phone, null, tint = SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -308,8 +310,8 @@ fun SignUpScreen(
                     SignUpTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password",
-                        placeholder = "Min. 8 characters",
+                        label = stringResource(id = R.string.password),
+                        placeholder = stringResource(id = R.string.password_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Lock, null, tint = SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -357,7 +359,12 @@ fun SignUpScreen(
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = when (passwordStrength) { 1 -> "Weak"; 2 -> "Fair"; 3 -> "Strong"; else -> "" },
+                                text = when (passwordStrength) {
+                                    1 -> stringResource(id = R.string.password_weak)
+                                    2 -> stringResource(id = R.string.password_fair)
+                                    3 -> stringResource(id = R.string.password_strong)
+                                    else -> ""
+                                },
                                 fontSize = 11.sp,
                                 color = when (passwordStrength) {
                                     1 -> Color(0xFFF44336); 2 -> Color(0xFFFF9800); else -> SignUpSecondaryGreen
@@ -373,8 +380,8 @@ fun SignUpScreen(
                     SignUpTextField(
                         value = confirmPassword,
                         onValueChange = { confirmPassword = it },
-                        label = "Confirm Password",
-                        placeholder = "Re-enter password",
+                        label = stringResource(id = R.string.confirm_password),
+                        placeholder = stringResource(id = R.string.confirm_password_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.LockOpen, null, tint = if (passwordMismatch) SignUpErrorColor else SignUpSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -407,7 +414,7 @@ fun SignUpScreen(
                     if (passwordMismatch) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Passwords do not match",
+                            text = stringResource(id = R.string.passwords_mismatch),
                             fontSize = 12.sp,
                             color = SignUpErrorColor,
                             modifier = Modifier.fillMaxWidth()
@@ -467,7 +474,7 @@ fun SignUpScreen(
                                     Icon(Icons.Filled.PersonAdd, null, tint = Color.White, modifier = Modifier.size(18.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(
-                                        text =  LanguageManager.get("create_account"),
+                                        text = stringResource(id = R.string.create_account),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
@@ -492,7 +499,7 @@ fun SignUpScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Divider(modifier = Modifier.weight(1f), color = SignUpBorderColor)
-                        Text("  or  ", fontSize = 12.sp, color = SignUpMediumGray.copy(0.5f))
+                        Text("  " + stringResource(id = R.string.or_label) + "  ", fontSize = 12.sp, color = SignUpMediumGray.copy(0.5f))
                         Divider(modifier = Modifier.weight(1f), color = SignUpBorderColor)
                     }
 
@@ -504,12 +511,12 @@ fun SignUpScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Already a farmer? ",
+                            text = stringResource(id = R.string.already_have_account) + " ",
                             fontSize = 14.sp,
                             color = SignUpMediumGray
                         )
                         Text(
-                            text = LanguageManager.get("login"),
+                            text = stringResource(id = R.string.login),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = SignUpPrimaryGreen,
@@ -526,7 +533,7 @@ fun SignUpScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "🌾 Growing Together, Harvesting Success",
+                text = stringResource(id = R.string.harvest_success),
                 fontSize = 12.sp,
                 color = SignUpMediumGray.copy(0.50f),
                 letterSpacing = 0.3.sp,

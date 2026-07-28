@@ -1,6 +1,8 @@
 package com.example.farmhelper.ui.auth
 
 
+import androidx.compose.ui.res.stringResource
+import com.example.farmhelper.R
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -35,7 +37,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lint.kotlin.metadata.Visibility
+import com.example.farmhelper.ui.auth.viewmodel.AuthViewModel
 import com.example.farmhelper.ui.localization.LanguageManager
 import kotlinx.coroutines.delay
 
@@ -54,12 +58,23 @@ private val LoginDisabledBtn     = Color(0xFFB2DFDB)
 // ── Login Screen ──────────────────────────────────────────────────────────────
 @Composable
 fun LoginScreen(
-    onNavigateToSignUp: () -> Unit = {}
+    onNavigateToSignUp: () -> Unit = {},
+    onLoginSuccess: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(false) }
+
+    val authViewModel: AuthViewModel = viewModel()
+    val isLoading by authViewModel.isLoading.collectAsState()
+    val error by authViewModel.error.collectAsState()
+    val loginResponse by authViewModel.loginResponse.collectAsState()
+
+    LaunchedEffect(loginResponse) {
+        loginResponse?.let {
+            onLoginSuccess()
+        }
+    }
 
     val focusManager = LocalFocusManager.current
     val scrollState = rememberScrollState()
@@ -174,7 +189,7 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = "Welcome back to Smart Farming",
+                text = stringResource(id = R.string.welcome_back),
                 fontSize = 14.sp,
                 color = LoginMediumGray,
                 letterSpacing = 0.3.sp,
@@ -214,7 +229,7 @@ fun LoginScreen(
                         )
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = LanguageManager.get("login"),
+                            text = stringResource(id = R.string.login),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = LoginDarkGray
@@ -222,7 +237,7 @@ fun LoginScreen(
                     }
 
                     Text(
-                        text = "Access your farming dashboard",
+                        text = stringResource(id = R.string.access_dashboard),
                         fontSize = 13.sp,
                         color = LoginMediumGray,
                         modifier = Modifier
@@ -234,8 +249,8 @@ fun LoginScreen(
                     FarmerTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = "Email Address",
-                        placeholder = "you@example.com",
+                        label = stringResource(id = R.string.email_address),
+                        placeholder = stringResource(id = R.string.email_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Email, null, tint = LoginSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -252,8 +267,8 @@ fun LoginScreen(
                     FarmerTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = "Password",
-                        placeholder = "Enter your password",
+                        label = stringResource(id = R.string.password),
+                        placeholder = stringResource(id = R.string.password_placeholder),
                         leadingIcon = {
                             Icon(Icons.Filled.Lock, null, tint = LoginSecondaryGreen, modifier = Modifier.size(20.dp))
                         },
@@ -279,7 +294,7 @@ fun LoginScreen(
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                         TextButton(onClick = {}) {
                             Text(
-                                text = LanguageManager.get("forgot_password"),
+                                text = stringResource(id = R.string.forgot_password),
                                 fontSize = 13.sp,
                                 color = LoginSecondaryGreen,
                                 fontWeight = FontWeight.SemiBold
@@ -289,9 +304,21 @@ fun LoginScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
+                    error?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = it,
+                            color = Color.Red,
+                            fontSize = 13.sp
+                        )
+                    }
+
                     // Login button
                     Button(
-                        onClick = { isLoading = true },
+                        onClick = {
+                            authViewModel.loginUser(email = email.trim(), password = password)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp)
@@ -323,7 +350,7 @@ fun LoginScreen(
                                 )
                             } else {
                                 Text(
-                                    text = LanguageManager.get("login"),
+                                    text = stringResource(id = R.string.login),
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
@@ -342,7 +369,7 @@ fun LoginScreen(
                     ) {
                         Divider(modifier = Modifier.weight(1f), color = LoginBorderColor)
                         Text(
-                            "  or  ",
+                            "  " + stringResource(id = R.string.or_label) + "  ",
                             fontSize = 12.sp,
                             color = LoginMediumGray.copy(0.5f)
                         )
@@ -357,12 +384,12 @@ fun LoginScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "New to Farmer? ",
+                            text = stringResource(id = R.string.new_to_customer) + " ",
                             fontSize = 14.sp,
                             color = LoginMediumGray
                         )
                         Text(
-                            text = LanguageManager.get("create_account"),
+                            text = stringResource(id = R.string.create_account),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = LoginPrimaryGreen,
@@ -380,7 +407,7 @@ fun LoginScreen(
 
             // Bottom tagline
             Text(
-                text = "🌱 Empowering Indian Farmers",
+                text = stringResource(id = R.string.empowering_farmers),
                 fontSize = 12.sp,
                 color = LoginMediumGray.copy(0.55f),
                 letterSpacing = 0.5.sp,

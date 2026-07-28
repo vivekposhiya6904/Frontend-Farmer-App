@@ -1,828 +1,463 @@
 package com.example.farmhelper.ui.home
 
-
-
+import androidx.activity.compose.BackHandler
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
-import androidx.compose.ui.draw.*
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// Exact same color system as existing screens
-private val PrimaryGreen = Color(0xFF2E7D32)
-private val SecondaryGreen = Color(0xFF4CAF50)
-private val AccentGreen = Color(0xFF8BC34A)
-private val Background = Color(0xFFF8FFF8)
-private val DarkText = Color(0xFF1A1A1A)
-private val MediumGray = Color(0xFF616161)
-private val BorderGreen = Color(0xFFE0F0E0)
-private val FieldBackground = Color(0xFFF3FAF3)
-private val White = Color(0xFFFFFFFF)
-
-// Feature data class
-data class Feature(
-    val title: String,
-    val description: String,
-    val icon: ImageVector,
-    val gradientColors: List<Color>
-)
-
-// Weather data class
-data class WeatherInfo(
-    val day: String,
-    val temperature: String,
-    val icon: ImageVector,
-    val condition: String
-)
-
-// Price data class
-data class CropPrice(
-    val cropName: String,
-    val price: String,
-    val change: String,
-    val isPositive: Boolean,
-    val icon: ImageVector
-)
+import com.example.farmhelper.R
+import com.example.farmhelper.session.SessionManager
+import com.example.farmhelper.ui.home.components.*
+import com.example.farmhelper.ui.home.models.*
+import com.example.farmhelper.ui.theme.*
+import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextAlign
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.farmhelper.ui.home.viewmodel.HomeViewModel
+import com.example.farmhelper.ui.home.viewmodel.HomeUiState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onProfileClick: () -> Unit = {},
     onNotificationsClick: () -> Unit = {},
-    onFeatureClick: (String) -> Unit = {}
+    onFeatureClick: (String) -> Unit = {},
+    onLogoutClick: () -> Unit = {},
+    viewModel: HomeViewModel = viewModel()
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val userFullName by sessionManager.userFullName.collectAsState(initial = "Farmer")
+    val userName = userFullName ?: "Farmer"
+
+    var showLogoutDialog by remember { mutableStateOf(false) }
+    val languageFlow = remember { com.example.farmhelper.ui.localization.LanguageManager.getLanguageFlow(context) }
+    val currentLanguageCode by languageFlow.collectAsState(initial = com.example.farmhelper.ui.localization.LanguageManager.currentLanguage)
+    val coroutineScope = rememberCoroutineScope()
+    var selectedCropId by remember { mutableStateOf("wheat") }
+    var selectedNavTab by remember { mutableStateOf("Home") }
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    var isRefreshing by remember { mutableStateOf(false) }
+
+    LaunchedEffect(uiState) {
+        if (uiState !is HomeUiState.Loading) {
+            isRefreshing = false
+        }
+    }
+
+    BackHandler(enabled = selectedNavTab != "Home") {
+        selectedNavTab = "Home"
+    }
+
+    // Community Posts (featuring generated visual image drawables)
+    val communityPosts = remember(currentLanguageCode) {
+        listOf(
+            CommunityPost(
+                id = "post_1",
+                authorName = "Ramesh Patel",
+                authorRole = context.getString(R.string.role_cotton_farmer),
+                content = context.getString(R.string.post_leaf_curl),
+                timeAgo = context.getString(R.string.post_time_ago),
+                likesCount = 14,
+                commentsCount = 6,
+                isLiked = false,
+                imageResId = R.drawable.cotton_leaf_curl
+            ),
+            CommunityPost(
+                id = "post_2",
+                authorName = "Suresh Verma",
+                authorRole = context.getString(R.string.role_wheat_farmer),
+                content = context.getString(R.string.post_wheat_content),
+                timeAgo = context.getString(R.string.post_time_1day),
+                likesCount = 38,
+                commentsCount = 12,
+                isLiked = true,
+                imageResId = R.drawable.wheat_harvest
+            )
+        )
+    }
+
+    // Government Schemes
+    val governmentSchemes = remember(currentLanguageCode) {
+        listOf(
+            GovernmentScheme(
+                id = "scheme_1",
+                title = context.getString(R.string.scheme_pm_kisan_title),
+                description = context.getString(R.string.scheme_pm_kisan_desc),
+                eligibility = context.getString(R.string.scheme_pm_kisan_eligibility),
+                benefit = context.getString(R.string.scheme_pm_kisan_benefit),
+                applyUrl = "https://pmkisan.gov.in",
+                status = "Eligible"
+            ),
+            GovernmentScheme(
+                id = "scheme_2",
+                title = context.getString(R.string.scheme_bima_title),
+                description = context.getString(R.string.scheme_bima_desc),
+                eligibility = context.getString(R.string.scheme_bima_eligibility),
+                benefit = context.getString(R.string.scheme_bima_benefit),
+                applyUrl = "https://pmfby.gov.in",
+                status = "Popular"
+            ),
+            GovernmentScheme(
+                id = "scheme_3",
+                title = context.getString(R.string.scheme_sinchayee_title),
+                description = context.getString(R.string.scheme_sinchayee_desc),
+                eligibility = context.getString(R.string.scheme_sinchayee_eligibility),
+                benefit = context.getString(R.string.scheme_sinchayee_benefit),
+                applyUrl = "https://pmksy.gov.in",
+                status = "NEW"
+            )
+        )
+    }
+
+    if (showLogoutDialog) {
+        AlertDialog(
+            onDismissRequest = { showLogoutDialog = false },
+            title = {
+                Text(
+                    text = stringResource(id = R.string.logout),
+                    fontWeight = FontWeight.Bold,
+                    color = ForestGreen
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(id = R.string.logout_confirmation),
+                    color = DarkGrayText
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showLogoutDialog = false
+                        onLogoutClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ForestGreen, contentColor = White)
+                ) {
+                    Text(stringResource(id = R.string.logout))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLogoutDialog = false }) {
+                    Text(stringResource(id = R.string.cancel), color = MediumGrayText)
+                }
+            },
+            containerColor = WarmWhite,
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenHeightDp.dp
 
-    // Animation states
-    var isVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(WarmBeige) // Premium Warm Beige Background
     ) {
-        // Same decorative background as existing screens
         DecorativeBackground(screenWidth, screenHeight)
 
         Scaffold(
             containerColor = Color.Transparent,
-            topBar = {
-                HomeTopBar(
-                    onProfileClick = onProfileClick,
-                    onNotificationsClick = onNotificationsClick,
-                    isVisible = isVisible
+            bottomBar = {
+                BottomNavigation(
+                    selectedTab = selectedNavTab,
+                    onTabSelected = {
+                        selectedNavTab = it
+                    }
                 )
             }
         ) { paddingValues ->
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 32.dp)
+                    .padding(paddingValues)
             ) {
-                // Welcome Section
-                item {
-                    WelcomeSection(isVisible = isVisible)
-                }
+                if (selectedNavTab == "Market") {
+                    com.example.farmhelper.ui.market.MarketScreen()
+                } else {
+                    when (val state = uiState) {
+                        is HomeUiState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    CircularProgressIndicator(color = ForestGreen)
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = stringResource(id = R.string.loading_label),
+                                        color = ForestGreen,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                        is HomeUiState.Error -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize().padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Card(
+                                    shape = RoundedCornerShape(24.dp),
+                                    colors = CardDefaults.cardColors(containerColor = WarmWhite),
+                                    border = BorderStroke(1.dp, AlertRed.copy(alpha = 0.2f)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(24.dp).fillMaxWidth(),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Text(
+                                            text = stringResource(id = R.string.error_fetching_data),
+                                            color = AlertRed,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 18.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = state.message,
+                                            color = DarkGrayText,
+                                            textAlign = TextAlign.Center,
+                                            fontSize = 14.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Button(
+                                            onClick = { viewModel.fetchHomeData() },
+                                            colors = ButtonDefaults.buttonColors(containerColor = ForestGreen)
+                                        ) {
+                                            Text(stringResource(id = R.string.retry_button), color = White)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        is HomeUiState.Success -> {
+                            val pullRefreshState = rememberPullToRefreshState()
+                            
+                            PullToRefreshBox(
+                                isRefreshing = isRefreshing,
+                                onRefresh = {
+                                    isRefreshing = true
+                                    viewModel.fetchHomeData()
+                                },
+                                state = pullRefreshState,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                LazyColumn(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentPadding = PaddingValues(bottom = 24.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // 1. Greeting Header
+                                    item {
+                                        GreetingHeader(
+                                            userName = userName,
+                                            currentLanguageCode = currentLanguageCode,
+                                            onLanguageSelected = { code ->
+                                                coroutineScope.launch {
+                                                    com.example.farmhelper.ui.localization.LanguageManager.saveLanguage(context, code)
+                                                }
+                                            },
+                                            onProfileClick = { showLogoutDialog = true },
+                                            onNotificationsClick = {
+                                                Toast.makeText(context, "Opening Notifications", Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
 
-                // Weather Section
-                item {
-                    WeatherSection(isVisible = isVisible)
-                }
+                                    // 2. Weather Summary Card
+                                    item {
+                                        val weather = state.weather
+                                        val rainChance = weather.sevenDayForecast.firstOrNull()?.rainProb ?: "0%"
+                                        val rainChanceInt = rainChance.removeSuffix("%").toIntOrNull() ?: 0
+                                        val isRainy = rainChanceInt > 50
+                                        val advisoryTitle = if (isRainy) stringResource(id = R.string.advisory_rain) else stringResource(id = R.string.advisory_irrigate_good)
+                                        val advisorySubtitle = if (isRainy) {
+                                            "${stringResource(id = R.string.advisory_irrigate_bad)} • ${stringResource(id = R.string.advisory_spray_bad)}"
+                                        } else {
+                                            stringResource(id = R.string.advisory_spray_good)
+                                        }
+                                        val advisoryColor = if (isRainy) AlertRed else ForestGreen
 
-                // Features Grid
-                item {
-                    FeaturesSection(
-                        isVisible = isVisible,
-                        onFeatureClick = onFeatureClick
-                    )
-                }
+                                        WeatherCard(
+                                            currentTemp = weather.currentTemp.toInt(),
+                                            condition = weather.condition,
+                                            rainChance = rainChance,
+                                            advisoryTitle = advisoryTitle,
+                                            advisorySubtitle = advisorySubtitle,
+                                            advisoryColor = advisoryColor,
+                                            onViewFullWeatherClick = {
+                                                onFeatureClick("weather")
+                                            }
+                                        )
+                                    }
 
-                // Crop Prices Section
-                item {
-                    CropPricesSection(isVisible = isVisible)
-                }
+                                    // 3. Crop Price Dashboard
+                                    item {
+                                        val cropList = state.cropPrices
+                                        val selectedCrop = remember(selectedCropId, cropList) {
+                                            cropList.find { it.id == selectedCropId } ?: cropList[0]
+                                        }
 
-                // Smart Tips Section
-                item {
-                    SmartTipsSection(isVisible = isVisible)
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            SectionHeader(title = stringResource(id = R.string.crop_price_dashboard))
+                                            
+                                            CropTabs(
+                                                crops = cropList,
+                                                selectedCropId = selectedCropId,
+                                                onCropSelected = { selectedCropId = it }
+                                            )
+                                            
+                                            PriceDashboard(
+                                                selectedCrop = selectedCrop,
+                                                onViewMarketDetailsClick = {
+                                                    selectedNavTab = "Market"
+                                                }
+                                            )
+                                        }
+                                    }
+
+                                    // 4. Weather Alerts
+                                    val alerts = state.weather.alerts
+                                    if (alerts.isNotEmpty()) {
+                                        item {
+                                            Column(modifier = Modifier.fillMaxWidth()) {
+                                                SectionHeader(title = stringResource(id = R.string.weather_alerts))
+                                                alerts.forEach { alert ->
+                                                    AlertCard(alert = alert)
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // 5. AI Farm Assistant
+                                    item {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            SectionHeader(title = stringResource(id = R.string.ai_assistant))
+                                            AIAssistantCard()
+                                        }
+                                    }
+
+                                    // 6. Farmer Community (Top 2 posts + View All button)
+                                    item {
+                                        Column(modifier = Modifier.fillMaxWidth()) {
+                                            SectionHeader(
+                                                title = stringResource(id = R.string.farmer_community)
+                                            )
+                                            
+                                            communityPosts.forEach { post ->
+                                                CommunityCard(post = post)
+                                            }
+                                            
+                                            Spacer(modifier = Modifier.height(10.dp))
+                                            
+                                            Button(
+                                                onClick = {
+                                                    Toast.makeText(context, context.getString(R.string.toast_opening_community), Toast.LENGTH_SHORT).show()
+                                                },
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 20.dp),
+                                                shape = RoundedCornerShape(12.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = SoftOlive, contentColor = ForestGreen),
+                                                border = BorderStroke(1.dp, ForestGreen.copy(alpha = 0.15f))
+                                            ) {
+                                                Text(
+                                                    text = stringResource(id = R.string.view_all),
+                                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 13.sp
+                                                    )
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // 7. Government Schemes (Top 2 schemes)
+                                    item {
+                                        GovernmentSchemeCard(
+                                            schemes = governmentSchemes.take(2),
+                                            onViewAllSchemesClick = {
+                                                Toast.makeText(context, context.getString(R.string.toast_opening_schemes), Toast.LENGTH_SHORT).show()
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
-
 
 @Composable
 private fun DecorativeBackground(
     screenWidth: androidx.compose.ui.unit.Dp,
     screenHeight: androidx.compose.ui.unit.Dp
 ) {
-    // Same decorative circles as LoginScreen, LanguageSelection, etc.
-    Box(
-        modifier = Modifier
-            .size(screenWidth * 0.6f)
-            .offset(x = screenWidth * 0.5f, y = -screenHeight * 0.05f)
-            .blur(80.dp)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        SecondaryGreen.copy(alpha = 0.08f),
-                        PrimaryGreen.copy(alpha = 0.03f),
-                        Color.Transparent
-                    )
-                ),
-                shape = CircleShape
-            )
-    )
-
-    Box(
-        modifier = Modifier
-            .size(screenWidth * 0.5f)
-            .offset(x = -screenWidth * 0.2f, y = screenHeight * 0.15f)
-            .blur(60.dp)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        AccentGreen.copy(alpha = 0.06f),
-                        SecondaryGreen.copy(alpha = 0.02f),
-                        Color.Transparent
-                    )
-                ),
-                shape = CircleShape
-            )
-    )
-
-    Box(
-        modifier = Modifier
-            .size(screenWidth * 0.4f)
-            .offset(x = screenWidth * 0.3f, y = screenHeight * 0.4f)
-            .blur(70.dp)
-            .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        PrimaryGreen.copy(alpha = 0.04f),
-                        Color.Transparent
-                    )
-                ),
-                shape = CircleShape
-            )
-    )
-
-    // Subtle green glow at bottom
+    // Leaf shape representation: offset and rotated rounded rectangles (Gradients of Sage & Forest green)
     Box(
         modifier = Modifier
             .size(screenWidth * 0.7f)
-            .offset(x = screenWidth * 0.15f, y = screenHeight * 0.8f)
+            .offset(x = screenWidth * 0.4f, y = -screenHeight * 0.05f)
+            .blur(80.dp)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(SageGreen.copy(alpha = 0.08f), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(topStart = 120.dp, bottomEnd = 120.dp) // Organic leaf curve
+            )
+    )
+
+    Box(
+        modifier = Modifier
+            .size(screenWidth * 0.6f)
+            .offset(x = -screenWidth * 0.3f, y = screenHeight * 0.2f)
+            .blur(70.dp)
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(ForestGreen.copy(alpha = 0.05f), Color.Transparent)
+                ),
+                shape = RoundedCornerShape(topEnd = 100.dp, bottomStart = 100.dp) // Organic leaf curve
+            )
+    )
+
+    Box(
+        modifier = Modifier
+            .size(screenWidth * 0.8f)
+            .offset(x = screenWidth * 0.1f, y = screenHeight * 0.65f)
             .blur(90.dp)
             .background(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        AccentGreen.copy(alpha = 0.05f),
-                        Color.Transparent
-                    )
+                brush = Brush.linearGradient(
+                    colors = listOf(SageGreen.copy(alpha = 0.06f), Color.Transparent)
                 ),
-                shape = CircleShape
+                shape = RoundedCornerShape(topStart = 150.dp, bottomEnd = 150.dp) // Organic leaf curve
             )
     )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeTopBar(
-    onProfileClick: () -> Unit,
-    onNotificationsClick: () -> Unit,
-    isVisible: Boolean
-) {
-    TopAppBar(
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Same logo style as SplashScreen
-                Icon(
-                    imageVector = Icons.Filled.Eco,
-                    contentDescription = null,
-                    tint = PrimaryGreen,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "FARMER",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryGreen,
-                        fontSize = 22.sp
-                    )
-                )
-            }
-        },
-        actions = {
-            IconButton(
-                onClick = onNotificationsClick,
-                modifier = Modifier
-                    .animateFadeIn(
-                        animationSpec = tween(800, delayMillis = 400)
-                    )
-            ) {
-                BadgedBox(
-                    badge = {
-                        Badge(
-                            containerColor = PrimaryGreen,
-                            contentColor = White
-                        ) {
-                            Text("3")
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Notifications,
-                        contentDescription = "Notifications",
-                        tint = DarkText
-                    )
-                }
-            }
-
-            IconButton(
-                onClick = onProfileClick,
-                modifier = Modifier
-                    .animateFadeIn(
-                        animationSpec = tween(800, delayMillis = 600)
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(PrimaryGreen, SecondaryGreen)
-                            ),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Person,
-                        contentDescription = "Profile",
-                        tint = White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
-            titleContentColor = DarkText
-        )
-    )
-}
-
-@Composable
-private fun WelcomeSection(isVisible: Boolean) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 8.dp)
-            .animateFadeIn(
-                animationSpec = tween(
-                    durationMillis = 800,
-                    delayMillis = 200,
-                    easing = FastOutSlowInEasing
-                )
-            )
-    ) {
-        Text(
-            text = "Good Morning,",
-            color = MediumGray,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Normal
-        )
-        Text(
-            text = "Rajesh Kumar 👋",
-            color = DarkText,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Your farm is ready for today's activities",
-            color = MediumGray,
-            fontSize = 14.sp
-        )
-    }
-}
-
-@Composable
-private fun WeatherSection(isVisible: Boolean) {
-    val weatherData = remember {
-        listOf(
-            WeatherInfo("Today", "32°C", Icons.Filled.WbSunny, "Sunny"),
-            WeatherInfo("Tomorrow", "28°C", Icons.Filled.Cloud, "Cloudy"),
-            WeatherInfo("Wed", "30°C", Icons.Filled.WbSunny, "Clear"),
-            WeatherInfo("Thu", "26°C", Icons.Filled.Thunderstorm, "Rain"),
-            WeatherInfo("Fri", "29°C", Icons.Filled.CloudQueue, "Partly")
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .animateFadeIn(
-                animationSpec = tween(800, delayMillis = 400)
-            )
-    ) {
-        // Section Header - Same style as LanguageSelection
-        Text(
-            text = "Weather Forecast",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        LazyRow(
-            contentPadding = PaddingValues(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(weatherData) { weather ->
-                WeatherCard(weather = weather)
-            }
-        }
-    }
-}
-
-@Composable
-private fun WeatherCard(weather: WeatherInfo) {
-    // Same card style as Language cards and Login card
-    Card(
-        modifier = Modifier
-            .width(100.dp)
-            .animateFadeIn(
-                animationSpec = tween(600)
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = White
-        ),
-        border = BorderStroke(1.dp, BorderGreen),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = weather.day,
-                color = MediumGray,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(
-                        brush = Brush.radialGradient(
-                            colors = listOf(
-                                PrimaryGreen.copy(alpha = 0.1f),
-                                SecondaryGreen.copy(alpha = 0.05f)
-                            )
-                        ),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = weather.icon,
-                    contentDescription = weather.condition,
-                    tint = PrimaryGreen,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = weather.temperature,
-                color = DarkText,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = weather.condition,
-                color = MediumGray,
-                fontSize = 11.sp,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-@Composable
-private fun FeaturesSection(
-    isVisible: Boolean,
-    onFeatureClick: (String) -> Unit
-) {
-    val features = remember {
-        listOf(
-            Feature("Weather", "Forecast", Icons.Filled.WbSunny, listOf(PrimaryGreen, SecondaryGreen)),
-            Feature("Prices", "Market Rates", Icons.Filled.TrendingUp, listOf(SecondaryGreen, AccentGreen)),
-            Feature("Insights", "Smart Tips", Icons.Outlined.Eco, listOf(PrimaryGreen, AccentGreen)),
-            Feature("Assist", "Get Help", Icons.Filled.SupportAgent, listOf(SecondaryGreen, PrimaryGreen))
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .animateFadeIn(
-                animationSpec = tween(800, delayMillis = 600)
-            )
-    ) {
-        Text(
-            text = "Quick Actions",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            features.forEach { feature ->
-                FeatureCard(
-                    feature = feature,
-                    onClick = { onFeatureClick(feature.title) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun FeatureCard(
-    feature: Feature,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    // Same card style and button gradient as existing screens
-    Card(
-        modifier = modifier
-            .animateScaleIn(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessLow
-                )
-            ),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = White
-        ),
-        border = BorderStroke(1.dp, BorderGreen),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp
-        ),
-        onClick = onClick
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(52.dp)
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = feature.gradientColors
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    )
-                    .shadow(
-                        elevation = 4.dp,
-                        shape = RoundedCornerShape(16.dp),
-                        ambientColor = PrimaryGreen.copy(alpha = 0.2f),
-                        spotColor = PrimaryGreen.copy(alpha = 0.3f)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = feature.icon,
-                    contentDescription = feature.title,
-                    tint = White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = feature.title,
-                color = DarkText,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = feature.description,
-                color = MediumGray,
-                fontSize = 11.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun CropPricesSection(isVisible: Boolean) {
-    val prices = remember {
-        listOf(
-            CropPrice("Wheat", "₹2,150/quintal", "+₹45", true, Icons.Filled.Grain),
-            CropPrice("Rice", "₹1,980/quintal", "+₹32", true, Icons.Filled.Landscape),
-            CropPrice("Cotton", "₹6,320/quintal", "-₹120", false, Icons.Filled.Nature),
-            CropPrice("Sugarcane", "₹315/quintal", "+₹8", true, Icons.Filled.Park)
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .animateFadeIn(
-                animationSpec = tween(800, delayMillis = 800)
-            )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Crop Prices",
-                color = PrimaryGreen,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-            TextButton(
-                onClick = { /* View all */ },
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = SecondaryGreen
-                )
-            ) {
-                Text(
-                    text = "View All",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-                Icon(
-                    imageVector = Icons.Filled.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp)
-                )
-            }
-        }
-
-        // Same card style as Login/SignUp cards
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = White
-            ),
-            border = BorderStroke(1.dp, BorderGreen),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 3.dp
-            )
-        ) {
-            Column {
-                prices.forEachIndexed { index, price ->
-                    CropPriceItem(price = price)
-                    if (index < prices.lastIndex) {
-                        HorizontalDivider(
-                            color = BorderGreen,
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun CropPriceItem(price: CropPrice) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    brush = Brush.radialGradient(
-                        colors = listOf(
-                            PrimaryGreen.copy(alpha = 0.1f),
-                            SecondaryGreen.copy(alpha = 0.05f)
-                        )
-                    ),
-                    shape = CircleShape
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = price.icon,
-                contentDescription = price.cropName,
-                tint = PrimaryGreen,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = price.cropName,
-                color = DarkText,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-
-        Text(
-            text = price.price,
-            color = DarkText,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Text(
-            text = price.change,
-            color = if (price.isPositive) PrimaryGreen else Color.Red,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-@Composable
-private fun SmartTipsSection(isVisible: Boolean) {
-    val tips = remember {
-        listOf(
-            "Use drip irrigation to save water and increase crop yield by 30%.",
-            "Check soil pH regularly for optimal nutrient absorption.",
-            "Rotate crops seasonally to maintain soil fertility."
-        )
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .animateFadeIn(
-                animationSpec = tween(800, delayMillis = 1000)
-            )
-    ) {
-        Text(
-            text = "Smart Farming Tips",
-            color = PrimaryGreen,
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
-        )
-
-        // Same card style as other sections
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = White
-            ),
-            border = BorderStroke(1.dp, BorderGreen),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 3.dp
-            )
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                tips.forEachIndexed { index, tip ->
-                    Row(
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .padding(top = 3.dp)
-                                .size(24.dp)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(PrimaryGreen, SecondaryGreen)
-                                    ),
-                                    shape = CircleShape
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Lightbulb,
-                                contentDescription = null,
-                                tint = White,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = tip,
-                            color = DarkText,
-                            fontSize = 14.sp,
-                            lineHeight = 20.sp,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    if (index < tips.lastIndex) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-                }
-            }
-        }
-    }
-}
-
-// Custom animation modifiers to match existing app animations
-fun Modifier.animateFadeIn(
-    animationSpec: AnimationSpec<Float> = spring()
-): Modifier = composed {
-    val alpha by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = animationSpec,
-        label = "fadeIn"
-    )
-    this.graphicsLayer { this.alpha = alpha }
-}
-
-fun Modifier.animateScaleIn(
-    animationSpec: AnimationSpec<Float> = spring(
-        dampingRatio = Spring.DampingRatioMediumBouncy,
-        stiffness = Spring.StiffnessLow
-    )
-): Modifier = composed {
-    val scale by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = animationSpec,
-        label = "scaleIn"
-    )
-    this.graphicsLayer {
-        scaleX = scale
-        scaleY = scale
-    }
 }
