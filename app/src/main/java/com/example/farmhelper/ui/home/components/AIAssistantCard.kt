@@ -29,7 +29,8 @@ import com.example.farmhelper.ui.theme.*
 
 @Composable
 fun AIAssistantCard(
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var queryText by remember { mutableStateOf("") }
@@ -43,7 +44,8 @@ fun AIAssistantCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .clickable { onClick() },
         shape = RoundedCornerShape(28.dp), // Premium organic corners
         colors = CardDefaults.cardColors(containerColor = Color.Transparent),
         border = BorderStroke(1.5.dp, AccentGreen), // Stands out as hero feature

@@ -329,7 +329,7 @@ fun LoginScreen(
                             disabledContainerColor = LoginDisabledBtn
                         ),
                         contentPadding = PaddingValues(0.dp),
-                        enabled = email.isNotBlank() && password.isNotBlank()
+                        enabled = email.isNotBlank() && password.isNotBlank() && !isLoading
                     ) {
                         Box(
                             modifier = Modifier

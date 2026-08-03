@@ -1,59 +1,70 @@
 package com.example.farmhelper.ui.weather.repository
 
 import retrofit2.Response
+import com.example.farmhelper.api.NetworkErrorHandler
 import com.example.farmhelper.api.RetrofitClient
 import com.example.farmhelper.ui.weather.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 
 class WeatherRepository {
 
     suspend fun fetchWeather(location: String, language: String? = null): ResponseDataResult = withContext(Dispatchers.IO) {
-        val liveDeferred = async { RetrofitClient.apiServices.getCurrentWeather(location, language) }
-        val forecastDeferred = async { RetrofitClient.apiServices.getWeatherForecast(location, days = 7, acceptLanguage = language) }
-        val alertsDeferred = async { RetrofitClient.apiServices.getWeatherAlerts(location, language) }
-        val timelineDeferred = async { 
-            try { RetrofitClient.apiServices.getWeatherTimeline(location, language) } catch (e: Exception) { null }
-        }
-        val recommendationsDeferred = async {
-            try { RetrofitClient.apiServices.getFarmingRecommendations(location, acceptLanguage = language) } catch (e: Exception) { null }
-        }
-        val cropInsightsDeferred = async {
-            try { RetrofitClient.apiServices.getWeatherCropInsights(language) } catch (e: Exception) { null }
-        }
-        val insightsDeferred = async {
-            try { RetrofitClient.apiServices.getWeatherInsights(location, language) } catch (e: Exception) { null }
-        }
-
-        try {
-            val liveResponse = liveDeferred.await()
-            val forecastResponse = forecastDeferred.await()
-            val alertsResponse = alertsDeferred.await()
-            val timelineResponse = timelineDeferred.await()
-            val recommendationsResponse = recommendationsDeferred.await()
-            val cropInsightsResponse = cropInsightsDeferred.await()
-            val insightsResponse = insightsDeferred.await()
-
-            if (liveResponse.isSuccessful && forecastResponse.isSuccessful && alertsResponse.isSuccessful) {
-                ResponseDataResult.Success(
-                    live = liveResponse.body()?.data,
-                    forecast = forecastResponse.body()?.data,
-                    alerts = alertsResponse.body()?.data,
-                    timeline = if (timelineResponse?.isSuccessful == true) timelineResponse.body()?.data else null,
-                    recommendations = if (recommendationsResponse?.isSuccessful == true) recommendationsResponse.body()?.data?.recommendations else null,
-                    cropAdvisories = if (cropInsightsResponse?.isSuccessful == true) cropInsightsResponse.body()?.data?.crop_advisories else null,
-                    insights = if (insightsResponse?.isSuccessful == true) insightsResponse.body()?.data else null
-                )
-            } else {
-                val err = liveResponse.errorBody()?.string()
-                    ?: forecastResponse.errorBody()?.string()
-                    ?: alertsResponse.errorBody()?.string()
-                    ?: "Error fetching weather data"
-                ResponseDataResult.Error(err)
+        supervisorScope {
+            val liveDeferred = async {
+                try { RetrofitClient.apiServices.getCurrentWeather(location, language) } catch (e: Exception) { null }
             }
-        } catch (e: Exception) {
-            ResponseDataResult.ExceptionError(e)
+            val forecastDeferred = async {
+                try { RetrofitClient.apiServices.getWeatherForecast(location, days = 7, acceptLanguage = language) } catch (e: Exception) { null }
+            }
+            val alertsDeferred = async {
+                try { RetrofitClient.apiServices.getWeatherAlerts(location, language) } catch (e: Exception) { null }
+            }
+            val timelineDeferred = async { 
+                try { RetrofitClient.apiServices.getWeatherTimeline(location, language) } catch (e: Exception) { null }
+            }
+            val recommendationsDeferred = async {
+                try { RetrofitClient.apiServices.getFarmingRecommendations(location, acceptLanguage = language) } catch (e: Exception) { null }
+            }
+            val cropInsightsDeferred = async {
+                try { RetrofitClient.apiServices.getWeatherCropInsights(language) } catch (e: Exception) { null }
+            }
+            val insightsDeferred = async {
+                try { RetrofitClient.apiServices.getWeatherInsights(location, language) } catch (e: Exception) { null }
+            }
+
+            try {
+                val liveResponse = liveDeferred.await()
+                val forecastResponse = forecastDeferred.await()
+                val alertsResponse = alertsDeferred.await()
+                val timelineResponse = timelineDeferred.await()
+                val recommendationsResponse = recommendationsDeferred.await()
+                val cropInsightsResponse = cropInsightsDeferred.await()
+                val insightsResponse = insightsDeferred.await()
+
+                if (liveResponse?.isSuccessful == true || forecastResponse?.isSuccessful == true) {
+                    ResponseDataResult.Success(
+                        live = liveResponse?.body()?.data,
+                        forecast = forecastResponse?.body()?.data,
+                        alerts = alertsResponse?.body()?.data,
+                        timeline = if (timelineResponse?.isSuccessful == true) timelineResponse.body()?.data else null,
+                        recommendations = if (recommendationsResponse?.isSuccessful == true) recommendationsResponse.body()?.data?.recommendations else null,
+                        cropAdvisories = if (cropInsightsResponse?.isSuccessful == true) cropInsightsResponse.body()?.data?.crop_advisories else null,
+                        insights = if (insightsResponse?.isSuccessful == true) insightsResponse.body()?.data else null
+                    )
+                } else {
+                    val err = when {
+                        liveResponse != null -> NetworkErrorHandler.parseErrorResponse(liveResponse)
+                        forecastResponse != null -> NetworkErrorHandler.parseErrorResponse(forecastResponse)
+                        else -> NetworkErrorHandler.MSG_NO_INTERNET
+                    }
+                    ResponseDataResult.Error(err)
+                }
+            } catch (e: Exception) {
+                ResponseDataResult.Error(NetworkErrorHandler.getErrorMessage(e))
+            }
         }
     }
 

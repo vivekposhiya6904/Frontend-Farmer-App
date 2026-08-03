@@ -33,6 +33,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.farmhelper.ui.home.viewmodel.HomeViewModel
 import com.example.farmhelper.ui.home.viewmodel.HomeUiState
+import com.example.farmhelper.ui.community.viewmodel.CommunityViewModel
+import com.example.farmhelper.ui.community.viewmodel.CommunityFeedUiState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 
@@ -43,7 +45,8 @@ fun HomeScreen(
     onNotificationsClick: () -> Unit = {},
     onFeatureClick: (String) -> Unit = {},
     onLogoutClick: () -> Unit = {},
-    viewModel: HomeViewModel = viewModel()
+    viewModel: HomeViewModel = viewModel(),
+    communityViewModel: CommunityViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -58,6 +61,7 @@ fun HomeScreen(
     var selectedNavTab by remember { mutableStateOf("Home") }
 
     val uiState by viewModel.uiState.collectAsState()
+    val communityState by communityViewModel.uiState.collectAsState()
 
     var isRefreshing by remember { mutableStateOf(false) }
 
@@ -69,34 +73,6 @@ fun HomeScreen(
 
     BackHandler(enabled = selectedNavTab != "Home") {
         selectedNavTab = "Home"
-    }
-
-    // Community Posts (featuring generated visual image drawables)
-    val communityPosts = remember(currentLanguageCode) {
-        listOf(
-            CommunityPost(
-                id = "post_1",
-                authorName = "Ramesh Patel",
-                authorRole = context.getString(R.string.role_cotton_farmer),
-                content = context.getString(R.string.post_leaf_curl),
-                timeAgo = context.getString(R.string.post_time_ago),
-                likesCount = 14,
-                commentsCount = 6,
-                isLiked = false,
-                imageResId = R.drawable.cotton_leaf_curl
-            ),
-            CommunityPost(
-                id = "post_2",
-                authorName = "Suresh Verma",
-                authorRole = context.getString(R.string.role_wheat_farmer),
-                content = context.getString(R.string.post_wheat_content),
-                timeAgo = context.getString(R.string.post_time_1day),
-                likesCount = 38,
-                commentsCount = 12,
-                isLiked = true,
-                imageResId = R.drawable.wheat_harvest
-            )
-        )
     }
 
     // Government Schemes
@@ -185,8 +161,13 @@ fun HomeScreen(
             bottomBar = {
                 BottomNavigation(
                     selectedTab = selectedNavTab,
-                    onTabSelected = {
-                        selectedNavTab = it
+                    onTabSelected = { tab ->
+                        selectedNavTab = tab
+                        when (tab) {
+                            "Community" -> onFeatureClick("community")
+                            "Profile" -> onFeatureClick("profile")
+                            "AI Assistant" -> onFeatureClick("ai_assistant")
+                        }
                     }
                 )
             }
@@ -358,26 +339,81 @@ fun HomeScreen(
                                     item {
                                         Column(modifier = Modifier.fillMaxWidth()) {
                                             SectionHeader(title = stringResource(id = R.string.ai_assistant))
-                                            AIAssistantCard()
+                                            AIAssistantCard(
+                                                onClick = { onFeatureClick("ai_assistant") }
+                                            )
                                         }
                                     }
 
-                                    // 6. Farmer Community (Top 2 posts + View All button)
+                                    // 6. Farmer Community (Top 2 real backend posts + View All button)
                                     item {
                                         Column(modifier = Modifier.fillMaxWidth()) {
                                             SectionHeader(
                                                 title = stringResource(id = R.string.farmer_community)
                                             )
                                             
-                                            communityPosts.forEach { post ->
-                                                CommunityCard(post = post)
+                                            when (val feedState = communityState) {
+                                                is CommunityFeedUiState.Success -> {
+                                                    val realPosts = feedState.posts.take(2)
+                                                    if (realPosts.isNotEmpty()) {
+                                                        realPosts.forEach { post ->
+                                                            CommunityItemCard(
+                                                                post = post,
+                                                                onLikeClick = { communityViewModel.toggleLike(post.id) },
+                                                                onCommentClick = { onFeatureClick("community") },
+                                                                onAuthorClick = { onFeatureClick("community") }
+                                                            )
+                                                        }
+                                                    } else {
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                                                            contentAlignment = Alignment.Center
+                                                        ) {
+                                                            Text(
+                                                                text = "No community posts yet. Share an update!",
+                                                                color = MediumGrayText,
+                                                                fontSize = 13.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                                is CommunityFeedUiState.Loading -> {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(20.dp),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        CircularProgressIndicator(
+                                                            color = ForestGreen,
+                                                            strokeWidth = 2.dp,
+                                                            modifier = Modifier.size(24.dp)
+                                                        )
+                                                    }
+                                                }
+                                                else -> {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                            .padding(horizontal = 20.dp, vertical = 12.dp),
+                                                            contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = "Connect with fellow farmers in the community",
+                                                            color = MediumGrayText,
+                                                            fontSize = 13.sp
+                                                        )
+                                                    }
+                                                }
                                             }
                                             
                                             Spacer(modifier = Modifier.height(10.dp))
                                             
                                             Button(
                                                 onClick = {
-                                                    Toast.makeText(context, context.getString(R.string.toast_opening_community), Toast.LENGTH_SHORT).show()
+                                                    onFeatureClick("community")
                                                 },
                                                 modifier = Modifier
                                                     .fillMaxWidth()

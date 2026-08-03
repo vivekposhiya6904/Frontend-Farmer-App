@@ -444,7 +444,7 @@ fun SignUpScreen(
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
                         contentPadding = PaddingValues(0.dp),
-                        enabled = formValid
+                        enabled = formValid && !isLoading
                     ) {
                         Box(
                             modifier = Modifier

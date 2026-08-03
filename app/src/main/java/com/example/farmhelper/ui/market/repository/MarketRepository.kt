@@ -1,5 +1,6 @@
 package com.example.farmhelper.ui.market.repository
 
+import com.example.farmhelper.api.NetworkErrorHandler
 import com.example.farmhelper.api.RetrofitClient
 import com.example.farmhelper.ui.market.models.*
 import kotlinx.coroutines.Dispatchers
@@ -7,7 +8,7 @@ import kotlinx.coroutines.withContext
 
 sealed class MarketResult<out T> {
     data class Success<out T>(val data: T) : MarketResult<T>()
-    data class Error(val message: String) : MarketResult<Nothing>()
+    data class Error(val message: String, val isServerWaking: Boolean = false) : MarketResult<Nothing>()
     data class ExceptionError(val exception: Exception) : MarketResult<Nothing>()
 }
 
@@ -16,39 +17,42 @@ class MarketRepository {
     suspend fun getDistricts(): MarketResult<DistrictResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getDistricts()
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch districts")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getCommodities(): MarketResult<CommodityResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getCommodities()
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch commodities")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getMarketsByDistrict(district: String, commodity: String? = null): MarketResult<MarketResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getMarketsByDistrict(district, commodity)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch markets")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
@@ -65,78 +69,84 @@ class MarketRepository {
             val response = RetrofitClient.apiServices.searchCropPrices(
                 district, commodity, market, variety, date, page, limit
             )
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to search crop prices")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getPriceHistory(district: String, commodity: String, days: Int = 30): MarketResult<PriceHistoryResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getPriceHistory(district, commodity, days)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch price history")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getLatestPrices(district: String? = null, limit: Int = 50): MarketResult<LatestPriceResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getLatestPrices(district, limit)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch latest prices")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getCropInsights(commodity: String, district: String): MarketResult<CropInsightsResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getCropInsights(commodity, district)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch crop insights")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getTopMarkets(commodity: String, district: String? = null): MarketResult<TopMarketsResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getTopMarkets(commodity, district)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch top markets")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getVarieties(commodity: String? = null, district: String? = null): MarketResult<VarietiesResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getVarieties(commodity, district)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch varieties")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
@@ -144,104 +154,112 @@ class MarketRepository {
         try {
             val req = SubscriptionRequest(commodity, priceThreshold, condition, market)
             val response = RetrofitClient.apiServices.createSubscription(req)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to create price alert")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getSubscriptions(): MarketResult<SubscriptionsListResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getSubscriptions()
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch subscriptions")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun deleteSubscription(subId: String): MarketResult<SubscriptionResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.deleteSubscription(subId)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to delete subscription")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun addFavorite(commodity: String): MarketResult<FavoriteResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.addFavorite(FavoriteRequest(commodity))
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to add favorite crop")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getFavorites(): MarketResult<FavoritesListResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getFavorites()
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch favorite crops")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun deleteFavorite(commodity: String): MarketResult<FavoriteResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.deleteFavorite(commodity)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to delete favorite crop")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun getCropAlerts(limit: Int = 20, isRead: Boolean? = null): MarketResult<CropAlertsListResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.getCropAlerts(limit, isRead)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to fetch crop alerts")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 
     suspend fun markCropAlertRead(alertId: String): MarketResult<CropAlertsListResponse> = withContext(Dispatchers.IO) {
         try {
             val response = RetrofitClient.apiServices.markCropAlertRead(alertId)
-            if (response.isSuccessful && response.body() != null) {
-                MarketResult.Success(response.body()!!)
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                MarketResult.Success(body)
             } else {
-                MarketResult.Error(response.errorBody()?.string() ?: "Failed to mark alert as read")
+                MarketResult.Error(NetworkErrorHandler.parseErrorResponse(response))
             }
         } catch (e: Exception) {
-            MarketResult.ExceptionError(e)
+            MarketResult.Error(NetworkErrorHandler.getErrorMessage(e))
         }
     }
 }

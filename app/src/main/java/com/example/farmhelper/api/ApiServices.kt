@@ -11,6 +11,7 @@ import com.example.farmhelper.ui.weather.models.WeatherForecastResponse
 import com.example.farmhelper.ui.weather.models.WeatherAlertsResponse
 
 import retrofit2.Response
+import okhttp3.ResponseBody
 import retrofit2.http.Header
 import retrofit2.http.Body
 import retrofit2.http.POST
@@ -247,4 +248,166 @@ interface ApiServices {
     suspend fun markCropAlertRead(
         @Path("alert_id") alertId: String
     ): Response<com.example.farmhelper.ui.market.models.CropAlertsListResponse>
+
+    // Community Feed & Posts
+    @GET("api/community/feed")
+    suspend fun getCommunityFeed(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10,
+        @Query("crop_tag") cropTag: String? = null
+    ): Response<com.example.farmhelper.ui.community.models.FeedResponse>
+
+    @POST("api/community/posts")
+    suspend fun createCommunityPost(
+        @Body request: com.example.farmhelper.ui.community.models.CreatePostRequest
+    ): Response<com.example.farmhelper.ui.community.models.CreatePostResponse>
+
+    @retrofit2.http.Multipart
+    @POST("api/community/image/upload")
+    suspend fun uploadCommunityImage(
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): Response<com.example.farmhelper.ui.community.models.ImageUploadResponse>
+
+    @retrofit2.http.Multipart
+    @POST("api/community/video/upload")
+    suspend fun uploadCommunityVideo(
+        @retrofit2.http.Part("title") title: okhttp3.RequestBody,
+        @retrofit2.http.Part("description") description: okhttp3.RequestBody?,
+        @retrofit2.http.Part file: okhttp3.MultipartBody.Part
+    ): Response<com.example.farmhelper.ui.community.models.VideoUploadResponse>
+
+    @POST("api/community/posts/{post_id}/like")
+    suspend fun togglePostLike(
+        @Path("post_id") postId: String
+    ): Response<com.example.farmhelper.ui.community.models.LikeResponse>
+
+    @POST("api/community/posts/{post_id}/comments")
+    suspend fun addPostComment(
+        @Path("post_id") postId: String,
+        @Body request: com.example.farmhelper.ui.community.models.CreateCommentRequest
+    ): Response<com.example.farmhelper.ui.community.models.CommentResponse>
+
+    @GET("api/community/posts/{post_id}/comments")
+    suspend fun getPostComments(
+        @Path("post_id") postId: String
+    ): Response<com.example.farmhelper.ui.community.models.CommentListResponse>
+
+    @POST("api/community/comments/{comment_id}/reply")
+    suspend fun replyToComment(
+        @Path("comment_id") commentId: String,
+        @Body request: com.example.farmhelper.ui.community.models.CreateCommentRequest
+    ): Response<com.example.farmhelper.ui.community.models.CommentResponse>
+
+    @DELETE("api/community/comments/{comment_id}")
+    suspend fun deleteComment(
+        @Path("comment_id") commentId: String
+    ): Response<ResponseBody>
+
+    @GET("api/community/profile/me")
+    suspend fun getMyProfile(): Response<com.example.farmhelper.ui.community.models.ProfileResponse>
+
+    @GET("api/community/profile/{user_id}")
+    suspend fun getFarmerProfile(
+        @Path("user_id") userId: String
+    ): Response<com.example.farmhelper.ui.community.models.ProfileResponse>
+
+    @GET("api/community/profile/me/posts")
+    suspend fun getMyPosts(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10
+    ): Response<com.example.farmhelper.ui.community.models.UserPostsResponse>
+
+    @GET("api/community/profile/{user_id}/posts")
+    suspend fun getFarmerPosts(
+        @Path("user_id") userId: String,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10
+    ): Response<com.example.farmhelper.ui.community.models.UserPostsResponse>
+
+    @PUT("api/community/profile")
+    suspend fun updateFarmerProfile(
+        @Body request: com.example.farmhelper.ui.community.models.UpdateProfileRequest
+    ): Response<com.example.farmhelper.ui.community.models.ProfileResponse>
+
+    @DELETE("api/community/posts/{post_id}")
+    suspend fun deleteCommunityPost(
+        @Path("post_id") postId: String
+    ): Response<ResponseBody>
+
+    @GET("api/community/search/posts")
+    suspend fun searchPosts(
+        @Query("q") query: String? = null,
+        @Query("crop_tag") cropTag: String? = null,
+        @Query("district") district: String? = null,
+        @Query("village") village: String? = null,
+        @Query("date_filter") dateFilter: String? = null,
+        @Query("media_type") mediaType: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10
+    ): Response<com.example.farmhelper.ui.community.models.SearchPostsResponse>
+
+    @GET("api/community/search/farmers")
+    suspend fun searchFarmers(
+        @Query("q") query: String? = null,
+        @Query("village") village: String? = null,
+        @Query("district") district: String? = null,
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10
+    ): Response<com.example.farmhelper.ui.community.models.SearchFarmersResponse>
+
+    @GET("api/community/search/suggestions")
+    suspend fun getSearchSuggestions(
+        @Query("q") query: String
+    ): Response<com.example.farmhelper.ui.community.models.SearchSuggestionsResponse>
+
+    @GET("api/community/trending")
+    suspend fun getTrendingData(): Response<com.example.farmhelper.ui.community.models.TrendingResponse>
+
+    @GET("api/community/notifications")
+    suspend fun getNotifications(
+        @Query("page") page: Int = 1,
+        @Query("limit") limit: Int = 10,
+        @Query("unread_only") unreadOnly: Boolean = false
+    ): Response<com.example.farmhelper.ui.community.models.NotificationListResponse>
+
+    @GET("api/community/notifications/unread-count")
+    suspend fun getUnreadNotificationCount(): Response<com.example.farmhelper.ui.community.models.UnreadCountResponse>
+
+    @POST("api/community/notifications/read/{notification_id}")
+    suspend fun markNotificationAsRead(
+        @Path("notification_id") notificationId: String
+    ): Response<ResponseBody>
+
+    @POST("api/community/notifications/read-all")
+    suspend fun markAllNotificationsAsRead(): Response<ResponseBody>
+
+    @DELETE("api/community/notifications/{notification_id}")
+    suspend fun deleteNotification(
+        @Path("notification_id") notificationId: String
+    ): Response<ResponseBody>
+
+    @POST("api/community/posts/{post_id}/report")
+    suspend fun reportPost(
+        @Path("post_id") postId: String,
+        @Body body: com.example.farmhelper.ui.community.models.ReportRequest
+    ): Response<com.example.farmhelper.ui.community.models.ReportResponse>
+
+    @POST("api/community/comments/{comment_id}/report")
+    suspend fun reportComment(
+        @Path("comment_id") commentId: String,
+        @Body body: com.example.farmhelper.ui.community.models.ReportRequest
+    ): Response<com.example.farmhelper.ui.community.models.ReportResponse>
+
+    @POST("api/community/users/{user_id}/block")
+    suspend fun blockUser(
+        @Path("user_id") userId: String
+    ): Response<com.example.farmhelper.ui.community.models.BlockResponse>
+
+    @DELETE("api/community/users/{user_id}/block")
+    suspend fun unblockUser(
+        @Path("user_id") userId: String
+    ): Response<com.example.farmhelper.ui.community.models.BlockResponse>
+
+    @GET("api/community/users/blocked")
+    suspend fun getBlockedUsers(): Response<com.example.farmhelper.ui.community.models.BlockedUserListResponse>
 }
